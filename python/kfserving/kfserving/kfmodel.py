@@ -20,6 +20,7 @@ import tornado.web
 
 PREDICTOR_URL_FORMAT = "http://{0}/v1/models/{1}:predict"
 EXPLAINER_URL_FORMAT = "http://{0}/v1/models/{1}:explain"
+BIAS_DETECTOR_URL_FORMAT = "http://{0}/v1/models/{1}:biasDetection"
 
 
 # KFModel is intended to be subclassed by various components within KFServing.
@@ -30,6 +31,7 @@ class KFModel:
         self.ready = False
         self.predictor_host = None
         self.explainer_host = None
+        self.bias_detector_host = None
 
     def load(self):
         self.ready = True
@@ -60,6 +62,20 @@ class KFModel:
 
         response = requests.post(
             EXPLAINER_URL_FORMAT.format(self.explainer_host, self.name),
+            json.dumps(request)
+        )
+        if response.status_code != 200:
+            raise tornado.web.HTTPError(
+                status_code=response.status_code,
+                reason=response.content)
+        return response.json()
+
+    def bias_detection(self, request: Dict) -> Dict:
+        if self.bias_detector_host is None:
+            raise NotImplementedError
+
+        response = requests.post(
+            BIAS_DETECTOR_URL_FORMAT.format(self.bias_detector_host, self.name),
             json.dumps(request)
         )
         if response.status_code != 200:
